@@ -35,10 +35,44 @@
 </ul>
 
 <div class="main">
-  <div id="xr-remind">
+  <div class="center">
+    <div id="xr-remind">
 
+    </div>
+
+    <label for="env-sel" id="sel2">Select environment:</label>
+    <select id="env-sel">
+      <option value="1" selected="selected">camp</option>
+      <option value="2">cave</option>
+      <option value="3">cube-room</option>
+      <option value="4">garage</option>
+      <option value="5">home-theater</option>
+      <option value="6">space</option>
+    </select>
+    <label for="skybox-sel" id="sel1">Select skybox:</label>
+    <select id="skybox-sel">
+      <option value="1" selected="selected">chess-pano-4k.jpg</option>
+      <option value="2">eilenriede-park-2k.png</option>
+      <option value="3">milky-way-2k.png</option>
+    </select>
+
+    <button class="webxr-button" id="webxr-button-1">Click to load environments</button>
+
+    <script type="module">
+      import {initXR} from "./js/webxr.js";
+
+      document.getElementById("webxr-button-1").onclick = run
+
+      function run() {
+        initXR(document.getElementById("env-sel").options[document.getElementById("env-sel").selectedIndex].text, document.getElementById("skybox-sel").options[document.getElementById("skybox-sel").selectedIndex].text)
+        document.getElementById("env-sel").hidden = true
+        document.getElementById("skybox-sel").hidden = true
+        document.getElementById("webxr-button-1").hidden = true
+        document.getElementById("sel1").hidden = true
+        document.getElementById("sel2").hidden = true
+      }
+    </script>
   </div>
-  <script src="js/webxr.js" type="module"></script>
 </div>
 
 </body>

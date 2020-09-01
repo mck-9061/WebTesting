@@ -3,146 +3,188 @@ import {Scene} from './webxr-render/render/scenes/scene.js';
 import {Renderer, createWebGLContext} from './webxr-render/render/core/renderer.js';
 import {Gltf2Node} from './webxr-render/render/nodes/gltf2.js';
 import {SkyboxNode} from './webxr-render/render/nodes/skybox.js';
+import {vec3} from './webxr-render/render/math/gl-matrix.js';
+import {Ray} from './webxr-render/render/math/ray.js';
+import {InlineViewerHelper} from './webxr-render/util/inline-viewer-helper.js';
+import {QueryArgs} from './webxr-render/util/query-args.js';
 
 // XR globals.
 let xrButton = null;
-let xrRefSpace = null;
+let xrImmersiveRefSpace = null;
+let inlineViewerHelper = null;
 
 // WebGL scene globals.
 let gl = null;
 let renderer = null;
 let scene = new Scene();
-scene.addNode(new Gltf2Node({url: 'media/webxr/gltf/space/space.gltf'}));
-scene.addNode(new SkyboxNode({url: 'media/webxr/textures/milky-way-4k.png'}));
+scene.standingStats(true);
 
-function init() {
+export function initXR(environment, skybox) {
+  scene.addNode(new Gltf2Node({url: 'media/webxr/gltf/'+environment+'/'+environment+'.gltf'}));
+  scene.addNode(new SkyboxNode({url: 'media/webxr/textures/'+skybox}));
   xrButton = new WebXRButton({
-    onRequestSession: run
+    onRequestSession: onRequestSession,
+    onEndSession: onEndSession
   });
-  document.querySelectorAll('div')[2].appendChild(xrButton.domElement);
-  // Is WebXR available on this UA?
+  document.querySelectorAll('div')[3].appendChild(xrButton.domElement);
+
   if (navigator.xr) {
-    // If the device allows creation of exclusive sessions set it as the
-    // target of the 'Enter XR' button.
     navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
       xrButton.enabled = supported;
       if (!supported) {
         document.getElementById("xr-remind").innerHTML = "Your browser supports WebXR but not immersive VR. Please open on a VR headset."
+        document.getElementById("env-sel").hidden = true
+        document.getElementById("skybox-sel").hidden = true
+        document.getElementById("sel1").hidden = true
+        document.getElementById("sel2").hidden = true
       }
     });
   } else {
-    document.getElementById("xr-remind").innerHTML = "Your browser doesn't support VR. Please open on a VR headset."
+    document.getElementById("xr-remind").innerHTML = "Your browser doesn't support WebXR. Please open on a VR headset."
+    document.getElementById("env-sel").hidden = true
+    document.getElementById("skybox-sel").hidden = true
+    document.getElementById("sel1").hidden = true
+    document.getElementById("sel2").hidden = true
   }
 }
 
+function initGL() {
+  if (gl)
+    return;
 
-function run() {
-  if ("xr" in navigator) {
-    const xr = navigator.xr
-    navigator.xr.isSessionSupported("immersive-vr").then((result) => {
-      if (result) {
-        xr.requestSession("immersive-vr").then((session) => {
+  gl = createWebGLContext({
+    xrCompatible: true
+  });
 
-          // Create a WebGL context to render with, initialized to be compatible
-          // with the XRDisplay we're presenting to.
-          gl = createWebGLContext({
-            xrCompatible: true
-          });
+  // Note: If you don't want dragging on the canvas to do things like
+  // scroll or pull-to-refresh, you'll want to set touch-action: none;
+  // on the canvas' CSS style, which this page does in common.css
+  document.body.appendChild(gl.canvas);
 
-          // Create a renderer with that GL context (this is just for the samples
-          // framework and has nothing to do with WebXR specifically.)
-          renderer = new Renderer(gl);
+  function onResize() {
+    gl.canvas.width = gl.canvas.clientWidth * window.devicePixelRatio;
+    gl.canvas.height = gl.canvas.clientHeight * window.devicePixelRatio;
+  }
+  window.addEventListener('resize', onResize);
+  onResize();
 
-          // Set the scene's renderer, which creates the necessary GPU resources.
-          scene.setRenderer(renderer);
+  renderer = new Renderer(gl);
 
-          // Use the new WebGL context to create a XRWebGLLayer and set it as the
-          // sessions baseLayer. This allows any content rendered to the layer to
-          // be displayed on the XRDevice.
-          session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
+  scene.setRenderer(renderer);
 
-          // Get a frame of reference, which is required for querying poses. In
-          // this case an 'local' frame of reference means that all poses will
-          // be relative to the location where the XRDevice was first detected.
-          session.requestReferenceSpace('local').then((refSpace) => {
-            xrRefSpace = refSpace;
+  // Loads a generic controller meshes.
+  scene.inputRenderer.setControllerMesh(new Gltf2Node({url: 'media/webxr/gltf/controller/controller.gltf'}), 'right');
+  scene.inputRenderer.setControllerMesh(new Gltf2Node({url: 'media/webxr/gltf/controller/controller-left.gltf'}), 'left');
+}
 
-            // Inform the session that we're ready to begin drawing.
-            session.requestAnimationFrame(onXRFrame);
-          });
+function onRequestSession() {
+  return navigator.xr.requestSession('immersive-vr', {
+    requiredFeatures: ['local-floor']
+  }).then((session) => {
+    xrButton.setSession(session);
+    session.isImmersive = true;
+    onSessionStarted(session);
+  });
+}
 
-        });
-      } else {
-        document.getElementById("xr-remind").innerHTML="Your browser supports WebXR, but not immersive VR. Please open on a VR headset, such as an Oculus Quest or Samsung Gear VR."
+function onSessionStarted(session) {
+  session.addEventListener('end', onSessionEnded);
+
+  initGL();
+
+  let glLayer = new XRWebGLLayer(session, gl);
+  session.updateRenderState({ baseLayer: glLayer });
+
+  let refSpaceType = session.isImmersive ? 'local-floor' : 'viewer';
+  session.requestReferenceSpace(refSpaceType).then((refSpace) => {
+    if (session.isImmersive) {
+      xrImmersiveRefSpace = refSpace;
+    } else {
+      inlineViewerHelper = new InlineViewerHelper(gl.canvas, refSpace);
+      inlineViewerHelper.setHeight(1.6);
+    }
+    session.requestAnimationFrame(onXRFrame);
+  });
+}
+
+function onEndSession(session) {
+  session.end();
+}
+
+function onSessionEnded(event) {
+  if (event.session.isImmersive) {
+    xrButton.setSession(null);
+  }
+}
+
+function updateInputSources(session, frame, refSpace) {
+  for (let inputSource of session.inputSources) {
+    let targetRayPose = frame.getPose(inputSource.targetRaySpace, refSpace);
+
+    // We may not get a pose back in cases where the input source has lost
+    // tracking or does not know where it is relative to the given frame
+    // of reference.
+    if (!targetRayPose) {
+      continue;
+    }
+
+    if (inputSource.targetRayMode == 'tracked-pointer') {
+      // If we have a pointer matrix and the pointer origin is the users
+      // hand (as opposed to their head or the screen) use it to render
+      // a ray coming out of the input device to indicate the pointer
+      // direction.
+      scene.inputRenderer.addLaserPointer(targetRayPose.transform);
+    }
+
+    // If we have a pointer matrix we can also use it to render a cursor
+    // for both handheld and gaze-based input sources.
+
+    // Statically render the cursor 2 meters down the ray since we're
+    // not calculating any intersections in this sample.
+    let targetRay = new Ray(targetRayPose.transform);
+    let cursorDistance = 2.0;
+    let cursorPos = vec3.fromValues(
+      targetRay.origin.x,
+      targetRay.origin.y,
+      targetRay.origin.z
+    );
+    vec3.add(cursorPos, cursorPos, [
+      targetRay.direction.x * cursorDistance,
+      targetRay.direction.y * cursorDistance,
+      targetRay.direction.z * cursorDistance,
+    ]);
+    // vec3.transformMat4(cursorPos, cursorPos, inputPose.targetRay.transformMatrix);
+
+    scene.inputRenderer.addCursor(cursorPos);
+
+    if (inputSource.gripSpace) {
+      let gripPose = frame.getPose(inputSource.gripSpace, refSpace);
+      if (gripPose) {
+        // If we have a grip pose use it to render a mesh showing the
+        // position of the controller.
+        scene.inputRenderer.addController(gripPose.transform.matrix, inputSource.handedness);
       }
-    })
-  } else {
-    document.getElementById("xr-remind").innerHTML="Your browser doesn't support WebXR. Please open on a VR headset, such as an Oculus Quest or Samsung Gear VR."
+    }
+
   }
 }
 
-// Called every time the XRSession requests that a new frame be drawn.
 function onXRFrame(t, frame) {
   let session = frame.session;
+  let refSpace = session.isImmersive ?
+    xrImmersiveRefSpace :
+    inlineViewerHelper.referenceSpace;
+  let pose = frame.getViewerPose(refSpace);
 
-  // Per-frame scene setup. Nothing WebXR specific here.
   scene.startFrame();
 
-  // Inform the session that we're ready for the next frame.
   session.requestAnimationFrame(onXRFrame);
 
-  // Get the XRDevice pose relative to the Frame of Reference we created
-  // earlier.
-  let pose = frame.getViewerPose(xrRefSpace);
+  updateInputSources(session, frame, refSpace);
 
-  // Getting the pose may fail if, for example, tracking is lost. So we
-  // have to check to make sure that we got a valid pose before attempting
-  // to render with it. If not in this case we'll just leave the
-  // framebuffer cleared, so tracking loss means the scene will simply
-  // disappear.
-  if (pose) {
-    let glLayer = session.renderState.baseLayer;
+  scene.drawXRFrame(frame, pose);
 
-    // If we do have a valid pose, bind the WebGL layer's framebuffer,
-    // which is where any content to be displayed on the XRDevice must be
-    // rendered.
-    gl.bindFramebuffer(gl.FRAMEBUFFER, glLayer.framebuffer);
-
-    // Clear the framebuffer
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    // Loop through each of the views reported by the frame and draw them
-    // into the corresponding viewport.
-    for (let view of pose.views) {
-      let viewport = glLayer.getViewport(view);
-      gl.viewport(viewport.x, viewport.y,
-        viewport.width, viewport.height);
-
-      // Draw this view of the scene. What happens in this function really
-      // isn't all that important. What is important is that it renders
-      // into the XRWebGLLayer's framebuffer, using the viewport into that
-      // framebuffer reported by the current view, and using the
-      // projection matrix and view transform from the current view.
-      // We bound the framebuffer and viewport up above, and are passing
-      // in the appropriate matrices here to be used when rendering.
-      scene.draw(view.projectionMatrix, view.transform);
-    }
-  } else {
-    // There's several options for handling cases where no pose is given.
-    // The simplest, which these samples opt for, is to simply not draw
-    // anything. That way the device will continue to show the last frame
-    // drawn, possibly even with reprojection. Alternately you could
-    // re-draw the scene again with the last known good pose (which is now
-    // likely to be wrong), clear to black, or draw a head-locked message
-    // for the user indicating that they should try to get back to an area
-    // with better tracking. In all cases it's possible that the device
-    // may override what is drawn here to show the user it's own error
-    // message, so it should not be anything critical to the application's
-    // use.
-  }
-
-  // Per-frame scene teardown. Nothing WebXR specific here.
   scene.endFrame();
 }
 
-init()
+// Start the XR application.
