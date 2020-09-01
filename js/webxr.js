@@ -26,7 +26,12 @@ function init() {
     // target of the 'Enter XR' button.
     navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
       xrButton.enabled = supported;
+      if (!supported) {
+        document.getElementById("xr-remind").innerHTML = "Your browser supports WebXR but not immersive VR. Please open on a VR headset."
+      }
     });
+  } else {
+    document.getElementById("xr-remind").innerHTML = "Your browser doesn't support VR. Please open on a VR headset."
   }
 }
 
