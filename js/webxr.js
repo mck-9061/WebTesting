@@ -230,7 +230,6 @@ function onSqueezeEnd(ev) {
   if (currently_grabbed_box != null && currently_grabbed_box.grabbed) {
     // the scale of 'grabbed' box is 0.1. Restore the original scale.
     vec3.add(currently_grabbed_box.scale, currently_grabbed_box.scale, [1, 1, 1]);
-    currently_grabbed_box.position = currently_grabbed_box.originalPos;
     currently_grabbed_box.grabbed = false;
     currently_grabbed_boxes[i] = null;
   }
