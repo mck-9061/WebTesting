@@ -37,8 +37,10 @@ let currentEnvironment = null;
 let currentSkybox = null;
 if (hideStats) {
   scene.enableStats(false);
+  scene.standingStats(false);
+} else {
+  scene.standingStats(true);
 }
-scene.standingStats(true);
 
 let boxes = [];
 let environments = ['camp', 'cave', 'cube-room', 'garage', 'home-theater', 'space'];
@@ -131,9 +133,9 @@ function initGL() {
   scene.setRenderer(renderer);
 
   // Create several boxes to use for hit testing.
-  addBox(-1.0, 1.6, -1.3, 1.0, 0.0, 0.0, boxes);
-  addBox(0.0, 1.7, -1.5, 0.0, 1.0, 0.0, boxes);
-  addBox(1.0, 1.6, -1.3, 0.0, 0.0, 1.0, boxes);
+  //addBox(-1.0, 1.6, -1.3, 1.0, 0.0, 0.0, boxes);
+  //addBox(0.0, 1.7, -1.5, 0.0, 1.0, 0.0, boxes);
+  //addBox(1.0, 1.6, -1.3, 0.0, 0.0, 1.0, boxes);
 
   // Represent the floor as a box so that we can perform a hit test
   // against it onSelect so that we can teleport the user to that
@@ -157,6 +159,7 @@ function onSessionStarted(session) {
   // By listening for the 'select' event we can find out when the user has
   // performed some sort of primary input action and respond to it.
   session.addEventListener('select', onSelect);
+  session.addEventListener('squeeze', onSqueeze);
 
   initGL();
   scene.inputRenderer.useProfileControllerMeshes(session);
@@ -209,6 +212,27 @@ let rotationDeltaQuat = quat.create();
 let invPosition = vec3.create();
 let invOrientation = quat.create();
 
+// oh hey I actually wrote some code of my own here
+// squeeze button = iterate environment
+// cus the boxes are big dumb
+function onSqueeze(ev) {
+  if (ev.inputSource.handedness == "left") {
+    // Iterate environment
+    envIter++
+    if (envIter == 6) envIter = 0
+    scene.removeNode(currentEnvironment)
+    currentEnvironment = new Gltf2Node({url: 'media/webxr/gltf/'+environments[envIter]+'/'+environments[envIter]+'.gltf'})
+    scene.addNode(currentEnvironment)
+  } else {
+    // Iterate skybox
+    skyboxIter++
+    if (skyboxIter == 3) skyboxIter = 0
+    scene.removeNode(currentSkybox)
+    currentSkybox = new SkyboxNode({url: 'media/webxr/textures/'+skyboxes[skyboxIter]})
+    scene.addNode(currentSkybox)
+  }
+}
+
 // If the user selected a point on the floor, teleport them to that
 // position while keeping their orientation the same.
 // Otherwise, check if one of the boxes was selected and update the
@@ -244,38 +268,10 @@ function onSelect(ev) {
   // Hit test results can change teleport position and orientation.
   let hitResult = scene.hitTest(inputSourcePose.transform);
   if (hitResult) {
-    // Check to see if the hit result was one of our boxes.
-    for (let i = 0; i < boxes.length; ++i) {
-      let box = boxes[i];
-      if (hitResult.node == box.node) {
-        // Change the box color to something random.
-        let uniforms = box.renderPrimitive.uniforms;
-        uniforms.baseColorFactor.value = [Math.random(), Math.random(), Math.random(), 1.0];
-        if (i == 0) {
-          // Iterate environment
-          envIter++
-          if (envIter == 6) envIter = 0
-          scene.removeNode(currentEnvironment)
-          currentEnvironment = new Gltf2Node({url: 'media/webxr/gltf/'+environments[envIter]+'/'+environments[envIter]+'.gltf'})
-          scene.addNode(currentEnvironment)
-        } else if (i == 1) {
-          // reset heading by undoing the current rotation
-          rotationDelta = -trackingSpaceHeadingDegrees;
-        } else if (i == 2) {
-          // Iterate skybox
-          skyboxIter++
-          if (skyboxIter == 3) envIter = 0
-          scene.removeNode(currentSkybox)
-          currentSkybox = new SkyboxNode({url: 'media/webxr/textures/'+skyboxes[skyboxIter]})
-          scene.addNode(currentSkybox)
-        }
-        console.log('rotate by', rotationDelta);
-      }
-    }
     if (hitResult.node == currentEnvironment) {
       // New position uses x/z values of the hit test result, keeping y at 0 (floor level)
       playerInWorldSpaceNew[0] = hitResult.intersection[0];
-      playerInWorldSpaceNew[1] = hitResult.intersection[1]+1;
+      playerInWorldSpaceNew[1] = hitResult.intersection[1];
       playerInWorldSpaceNew[2] = hitResult.intersection[2];
       console.log('teleport to', playerInWorldSpaceNew);
     }
