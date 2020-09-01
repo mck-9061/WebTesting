@@ -32,16 +32,29 @@ let floorNode = null;
 let gl = null;
 let renderer = null;
 let scene = new Scene();
+
+let currentEnvironment = null;
+let currentSkybox = null;
 if (hideStats) {
   scene.enableStats(false);
 }
 scene.standingStats(true);
 
 let boxes = [];
+let environments = ['camp', 'cave', 'cube-room', 'garage', 'home-theater', 'space'];
+let envIter = 0;
+let skyboxes = ['chess-pano-4k.jpg', 'eilenriede-park-2k.png', 'milky-way-2k.png']
+let skyboxIter = 0;
 
 export function initXR(environment, skybox) {
-  scene.addNode(new Gltf2Node({url: 'media/webxr/gltf/'+environment+'/'+environment+'.gltf'}));
-  scene.addNode(new SkyboxNode({url: 'media/webxr/textures/'+skybox}));
+  currentEnvironment = new Gltf2Node({url: 'media/webxr/gltf/'+environment+'/'+environment+'.gltf'})
+  currentSkybox = new SkyboxNode({url: 'media/webxr/textures/'+skybox})
+  scene.addNode(currentEnvironment);
+  scene.addNode(currentSkybox);
+
+  envIter = environments.indexOf(environment)
+  skyboxIter = skyboxes.indexOf(skybox)
+
   xrButton = new WebXRButton({
     onRequestSession: onRequestSession,
     onEndSession: onEndSession
@@ -244,14 +257,22 @@ function onSelect(ev) {
         let uniforms = box.renderPrimitive.uniforms;
         uniforms.baseColorFactor.value = [Math.random(), Math.random(), Math.random(), 1.0];
         if (i == 0) {
-          // turn left
-          rotationDelta = 30;
+          // Iterate environment
+          envIter++
+          if (envIter == 6) envIter = 0
+          scene.removeNode(currentEnvironment)
+          currentEnvironment = new Gltf2Node({url: 'media/webxr/gltf/'+environments[envIter]+'/'+environments[envIter]+'.gltf'})
+          scene.addNode(currentEnvironment)
         } else if (i == 1) {
           // reset heading by undoing the current rotation
           rotationDelta = -trackingSpaceHeadingDegrees;
         } else if (i == 2) {
-          // turn right
-          rotationDelta = -30;
+          // Iterate skybox
+          skyboxIter++
+          if (skyboxIter == 3) envIter = 0
+          scene.removeNode(currentSkybox)
+          currentSkybox = new SkyboxNode({url: 'media/webxr/textures/'+skyboxes[skyboxIter]})
+          scene.addNode(currentSkybox)
         }
         console.log('rotate by', rotationDelta);
       }
