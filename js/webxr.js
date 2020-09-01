@@ -271,7 +271,7 @@ function onSelect(ev) {
     if (hitResult.node == currentEnvironment) {
       // New position uses x/z values of the hit test result, keeping y at 0 (floor level)
       playerInWorldSpaceNew[0] = hitResult.intersection[0];
-      playerInWorldSpaceNew[1] = hitResult.intersection[1];
+      playerInWorldSpaceNew[1] = 0
       playerInWorldSpaceNew[2] = hitResult.intersection[2];
       console.log('teleport to', playerInWorldSpaceNew);
     }
