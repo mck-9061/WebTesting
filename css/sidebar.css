@@ -1,0 +1,36 @@
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  width: 10%;
+  background-color: #777777;
+  height: 100%; /* Full height */
+  position: fixed; /* Make it stick, even on scroll */
+  overflow: auto; /* Enable scrolling if the sidenav has too much content */
+}
+
+li a {
+  display: block;
+  color: white;
+  padding: 8px 16px;
+  text-decoration: none;
+}
+
+/* Change the link color on hover */
+li a:hover {
+  background-color: #555;
+  color: white;
+  transition: all 0.1s;
+}
+
+li a.active {
+  background-color: #4CAF50;
+  color: white;
+}
+
+/* Style page content */
+.main {
+  margin-left: 10%; /* Same as the width of the sidebar */
+  padding: 10px 10px 0px;
+  color: #DCDCDC;
+}
