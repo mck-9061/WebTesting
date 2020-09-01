@@ -26,7 +26,7 @@ export function initXR(environment, skybox) {
     onRequestSession: onRequestSession,
     onEndSession: onEndSession
   });
-  document.querySelectorAll('div')[3].appendChild(xrButton.domElement);
+  document.querySelectorAll('div')[4].appendChild(xrButton.domElement);
 
   if (navigator.xr) {
     navigator.xr.isSessionSupported('immersive-vr').then((supported) => {

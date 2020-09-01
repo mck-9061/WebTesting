@@ -279,3 +279,7 @@ textarea {
 .center {
   margin: auto;
 }
+
+.selectors {
+  padding-bottom: 18px
+}
