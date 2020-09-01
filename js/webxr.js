@@ -107,12 +107,7 @@ function addFloorBox() {
   boxMaterial.baseColorFactor.value = [0.3, 0.3, 0.3, 1.0];
   let boxRenderPrimitive = renderer.createRenderPrimitive(boxPrimitive, boxMaterial);
 
-  floorNode = new Node();
-  floorNode.addRenderPrimitive(boxRenderPrimitive);
-  floorNode.selectable = true;
-  scene.addNode(floorNode);
-  mat4.identity(floorNode.matrix);
-  mat4.translate(floorNode.matrix, floorNode.matrix, floorPosition);
+  currentEnvironment.selectable = true;
 }
 
 function initGL() {
@@ -277,10 +272,10 @@ function onSelect(ev) {
         console.log('rotate by', rotationDelta);
       }
     }
-    if (hitResult.node == floorNode) {
+    if (hitResult.node == currentEnvironment) {
       // New position uses x/z values of the hit test result, keeping y at 0 (floor level)
       playerInWorldSpaceNew[0] = hitResult.intersection[0];
-      playerInWorldSpaceNew[1] = 0;
+      playerInWorldSpaceNew[1] = hitResult.intersection[1]+1;
       playerInWorldSpaceNew[2] = hitResult.intersection[2];
       console.log('teleport to', playerInWorldSpaceNew);
     }
