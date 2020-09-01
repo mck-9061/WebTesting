@@ -40,7 +40,7 @@
 
     </div>
 
-    <div class="selectors">
+    <div class="selectors" id="selectors">
       <label for="env-sel" id="sel2">Select environment:</label>
       <select id="env-sel">
         <option value="1" selected="selected">camp</option>
@@ -56,6 +56,11 @@
         <option value="2">eilenriede-park-2k.png</option>
         <option value="3">milky-way-2k.png</option>
       </select>
+      <label for="boxes" id="sel3">Include boxes?</label>
+      <select id="boxes">
+        <option value="1" selected="selected">yes</option>
+        <option value="2">no</option>
+      </select>
     </div>
 
     <button class="webxr-button" id="webxr-button-1">Click to load environments</button>
@@ -67,11 +72,7 @@
 
       function run() {
         initXR(document.getElementById("env-sel").options[document.getElementById("env-sel").selectedIndex].text, document.getElementById("skybox-sel").options[document.getElementById("skybox-sel").selectedIndex].text)
-        document.getElementById("env-sel").hidden = true
-        document.getElementById("skybox-sel").hidden = true
-        document.getElementById("webxr-button-1").hidden = true
-        document.getElementById("sel1").hidden = true
-        document.getElementById("sel2").hidden = true
+        document.getElementById("selectors").hidden = true
         document.getElementById("xr-remind").innerHTML = "Reload the page to change environment."
       }
     </script>

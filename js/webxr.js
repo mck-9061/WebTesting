@@ -39,18 +39,12 @@ export function initXR(environment, skybox) {
       xrButton.enabled = supported;
       if (!supported) {
         document.getElementById("xr-remind").innerHTML = "Your browser supports WebXR but not immersive VR. Please open on a VR headset."
-        document.getElementById("env-sel").hidden = true
-        document.getElementById("skybox-sel").hidden = true
-        document.getElementById("sel1").hidden = true
-        document.getElementById("sel2").hidden = true
+        document.getElementById("selectors").hidden = true
       }
     });
   } else {
     document.getElementById("xr-remind").innerHTML = "Your browser doesn't support WebXR. Please open on a VR headset."
-    document.getElementById("env-sel").hidden = true
-    document.getElementById("skybox-sel").hidden = true
-    document.getElementById("sel1").hidden = true
-    document.getElementById("sel2").hidden = true
+    document.getElementById("selectors").hidden = true
   }
 }
 
@@ -98,9 +92,11 @@ function initGL() {
     scene.addNode(boxNode);
   }
 
-  addBox(-1.0, 1.6, -1.3, 1.0, 0.0, 0.0);
-  addBox(0.0, 1.7, -1.5, 0.0, 1.0, 0.0);
-  addBox(1.0, 1.6, -1.3, 0.0, 0.0, 1.0);
+  if (document.getElementById("boxes").options[document.getElementById("boxes").selectedIndex].text == "yes") {
+    addBox(-1.0, 1.6, -1.3, 1.0, 0.0, 0.0);
+    addBox(0.0, 1.7, -1.5, 0.0, 1.0, 0.0);
+    addBox(1.0, 1.6, -1.3, 0.0, 0.0, 1.0);
+  }
 }
 
 function onRequestSession() {
