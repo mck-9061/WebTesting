@@ -32,7 +32,7 @@ export function initXR(environment, skybox) {
     onRequestSession: onRequestSession,
     onEndSession: onEndSession
   });
-  document.querySelectorAll('div')[4].appendChild(xrButton.domElement);
+  document.querySelectorAll('div')[3].appendChild(xrButton.domElement);
 
   if (navigator.xr) {
     navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
@@ -40,11 +40,13 @@ export function initXR(environment, skybox) {
       if (!supported) {
         document.getElementById("xr-remind").innerHTML = "Your browser supports WebXR but not immersive VR. Please open on a VR headset."
         document.getElementById("selectors").hidden = true
+        document.getElementById("webxr-button-1").hidden = true
       }
     });
   } else {
     document.getElementById("xr-remind").innerHTML = "Your browser doesn't support WebXR. Please open on a VR headset."
     document.getElementById("selectors").hidden = true
+    document.getElementById("webxr-button-1").hidden = true
   }
 }
 

@@ -73,6 +73,7 @@
       function run() {
         initXR(document.getElementById("env-sel").options[document.getElementById("env-sel").selectedIndex].text, document.getElementById("skybox-sel").options[document.getElementById("skybox-sel").selectedIndex].text)
         document.getElementById("selectors").hidden = true
+        document.getElementById("webxr-button-1").hidden = true
         document.getElementById("xr-remind").innerHTML = "Reload the page to change environment."
       }
     </script>
